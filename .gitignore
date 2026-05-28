@@ -1,0 +1,46 @@
+# === Python & Virtual Environment ===
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.$py.class
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# === IDE & OS Files ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === ML Artifacts & Data (Heavy binaries, generate locally) ===
+models/
+data/
+*.onnx
+*.npy
+*.pkl
+*.joblib
+*.h5
+
+# === Logs, Secrets & Env ===
+*.log
+logs/
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+
+# === Testing & Coverage ===
+.pytest_cache/
+.coverage
+htmlcov/
+.cache/
