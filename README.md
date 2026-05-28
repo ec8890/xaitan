@@ -70,9 +70,7 @@ python3 demo/run_demo.py
 
 ### POST /predict
 
-**Заголовок:**
-```
-X-API-Key: dev-key-123
+
 ```
 
 **Тело запроса:**
