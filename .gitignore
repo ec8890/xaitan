@@ -44,3 +44,13 @@ logs/
 .coverage
 htmlcov/
 .cache/
+
+# Docker build artifacts
+=
+CACHED
+[builder
+[internal
+exporting
+naming
+transferring
+writing
