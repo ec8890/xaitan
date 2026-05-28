@@ -34,9 +34,10 @@ def generate_dummy_model():
     
     model.fit(X, y)
     
-    # Конвертируем в ONNX
+    # Конвертируем в ONNX с zipmap=False для получения вероятностей вместо меток классов
+    # Это критически важно для работы XAI методов (SHAP, LIME)
     initial_type = [('float_input', FloatTensorType([None, 10]))]
-    onnx_model = convert_sklearn(model, initial_types=initial_type)
+    onnx_model = convert_sklearn(model, initial_types=initial_type, options={type(model): {'zipmap': False}})
     
     # Сохраняем
     output_path = Path(__file__).parent.parent / 'models' / 'attack_detector.onnx'

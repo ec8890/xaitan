@@ -115,10 +115,15 @@ class XAItanCore:
 
     def _init_explainers(self):
         self.lime_explainer = lime.lime_tabular.LimeTabularExplainer(
-            training_data=self.baseline, mode="classification",
-            feature_names=self.feature_names, discretize_continuous=False
+            training_data=self.baseline, 
+            mode="classification",
+            feature_names=self.feature_names, 
+            discretize_continuous=True,
+            random_state=42
         )
-        self.shap_explainer = shap.KernelExplainer(self._predict_proba_wrapper, self.baseline[:200])
+        # Используем меньшую выборку для скорости, но достаточную для стабильности
+        baseline_subset = self.baseline[:min(100, len(self.baseline))]
+        self.shap_explainer = shap.KernelExplainer(self._predict_proba_wrapper, baseline_subset)
 
     def _predict_proba_wrapper(self, data):
         """Безопасная обертка для SHAP/LIME. Корректно обрабатывает батчи любого размера."""
@@ -128,7 +133,19 @@ class XAItanCore:
                 data = data.reshape(1, -1)
             
             input_name = self.session.get_inputs()[0].name
-            out = self.session.run(None, {input_name: data.astype(np.float32)})[0]
+            outputs = self.session.run(None, {input_name: data.astype(np.float32)})
+            
+            # Модель может возвращать 2 выхода: [labels, probabilities] или 1 выход
+            if len(outputs) == 2:
+                # Второй выход - вероятности (n_samples, n_classes)
+                # ONNX может возвращать logits, поэтому нормализуем через softmax
+                out = outputs[1].astype(np.float32)
+                # Применяем softmax для получения корректных вероятностей
+                e = np.exp(out - np.max(out, axis=1, keepdims=True))
+                out = e / np.sum(e, axis=1, keepdims=True)
+            else:
+                # Один выход - может потребоваться нормализовать
+                out = outputs[0].astype(np.float32)
             
             # Нормализация (softmax), если вышли логины
             if out.min() < 0 or out.max() > 1:
@@ -167,24 +184,60 @@ class XAItanCore:
                     input_vector, self._predict_proba_wrapper, 
                     num_features=min(10, self.n_features), num_samples=30
                 )
-                attribution = {self.feature_names[idx]: float(w) for idx, w in exp.as_map().items() if idx < self.n_features}
+                # LIME as_map() возвращает {class_index: [(feature_idx, weight), ...]}
+                # Для бинарной классификации обычно {1: [...]} или {0: [...], 1: [...]}
+                lime_dict = exp.as_map()
+                attribution = {}
+                
+                # Берем все классы и объединяем веса
+                for class_idx, features_list in lime_dict.items():
+                    for feat_idx, weight in features_list:
+                        feat_key = self.feature_names[int(feat_idx)]
+                        # Если признак уже есть, суммируем веса (для мультиклассовой)
+                        attribution[feat_key] = attribution.get(feat_key, 0.0) + float(weight)
 
             elif method == "SHAP":
+                # SHAP может вернуть разные форматы в зависимости от модели и версии
                 raw = await asyncio.to_thread(self.shap_explainer.shap_values, input_vector.reshape(1, -1))
                 
-                # Безопасное извлечение значений SHAP
+                # Преобразуем в numpy array для обработки
+                vals = np.asarray(raw)
+                
+                # Обработка различных форматов вывода SHAP:
+                # 1. Для бинарной классификации: (n_samples, n_features, n_classes) или list из 2 arrays
+                # 2. Для мультиклассовой: similar
+                # 3. Для регрессии: (n_samples, n_features)
+                
                 if isinstance(raw, list):
-                    safe_class = pred_class if pred_class < len(raw) else 0
-                    vals = raw[safe_class]
+                    # Если список (для мультиклассовой), берем нужный класс
+                    if len(raw) > pred_class:
+                        vals = np.asarray(raw[pred_class])
+                    else:
+                        vals = np.asarray(raw[0])
+                
+                # Теперь обрабатываем размерность
+                if vals.ndim == 3:
+                    # (1, n_features, n_classes) -> извлекаем для pred_class
+                    if vals.shape[2] > pred_class:
+                        vals = vals[0, :, pred_class]
+                    else:
+                        vals = vals[0, :, 0]
+                elif vals.ndim == 2:
+                    # (1, n_features) или (n_samples, n_features)
+                    vals = vals[0, :]
+                elif vals.ndim == 1:
+                    vals = vals.flatten()
                 else:
-                    vals = raw
+                    vals = vals.flatten()
                 
-                # .flatten() гарантирует 1D массив без ошибок reshape
-                vals = np.asarray(vals).flatten()
-                
+                # Сопоставляем значения с именами признаков
                 for i, feat in enumerate(self.feature_names):
                     if i < len(vals):
                         attribution[feat] = float(vals[i])
+            
+            # Логирование для отладки
+            if not attribution and method != "none":
+                log.warning("empty_attribution", method=method, pred_class=pred_class)
 
             if attribution:
                 vs = list(attribution.values())

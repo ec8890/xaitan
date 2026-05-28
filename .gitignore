@@ -1,56 +1,40 @@
-# === Python & Virtual Environment ===
-venv/
-.venv/
-env/
-__pycache__/
-*.py[cod]
-*.$py.class
-.Python
-build/
-dist/
-*.egg-info/
-*.egg
+```
+# Model files
+*.onnx
 
-# === IDE & OS Files ===
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.env
+.env.local
+.env.*
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+
+# OS
 .DS_Store
 Thumbs.db
 
-# === ML Artifacts & Data (Heavy binaries, generate locally) ===
-models/
-data/
-*.onnx
-*.npy
-*.pkl
-*.joblib
-*.h5
-
-# === Logs, Secrets & Env ===
+# Logs
 *.log
-logs/
-.env
-.env.local
-.env.*.local
-*.key
-*.pem
-*.crt
 
-# === Testing & Coverage ===
-.pytest_cache/
-.coverage
-htmlcov/
-.cache/
-
-# Docker build artifacts
-=
-CACHED
-[builder
-[internal
-exporting
-naming
-transferring
-writing
+# Temp files
+*.tmp
+```
