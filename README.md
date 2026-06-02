@@ -38,7 +38,7 @@ Python 3.10+ | FastAPI | ONNX Runtime | SHAP/LIME | Docker
 - **Ядро**: Python 3.10+, Pydantic, ONNX Runtime
 - **XAI**: SHAP 0.43+, LIME 0.2.0+
 - **API**: FastAPI 0.104+, Uvicorn, Asyncio
-- **DevSecOps**: Docker, GitLab CI/CD, Trivy, Bandit
+- **DevSecOps**: Docker
 - **Logging**: Structlog, JSON
 
 ## Быстрый старт
@@ -100,7 +100,6 @@ python3 demo/run_demo.py
 
 | Переменная среды     | Описание                          | По умолчанию |
 |---------------------|----------------------------------|--------------|
-| XAI_API_KEYS        | Список API-ключей                | 0 |
 | CONFIDENCE_THRESHOLD| Порог уверенности для SHAP       | 0.7          |
 | ANOMALY_THRESHOLD   | Порог детекции аномалий          | 0.4          |
 
